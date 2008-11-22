@@ -10,7 +10,6 @@ sub add($$$$) {
 	my ($irc,$nick,$title,$url) = @_;
 	$title = $db->quote($title);
 	$url = $db->quote($url);
-	#print "$nick $title $url\n";
 	my $table = "bm_".$nick;
 	if (!table_exists($table)) {
 		$irc->yield(notice => $nick => "You have not created a database yet.  Please type /MSG URLbot BOOKMARK CREATE");
@@ -18,14 +17,12 @@ sub add($$$$) {
 		$db->do("INSERT INTO $table VALUES ($title, $url)");
                 $irc->yield(notice => $nick => "Added $url as \"$title\"");
 	}
- #               $irc->yield("NOTICE $nick :It seems \"$title\" already exists with the URL $row[0].");	
 }
 
 sub create {
 	my ($irc,$nick) = @_;
 	my $table = "bm_".$nick;
 	if (!table_exists($table)) {
-		#print "$table\n";
 		$db->do("CREATE TABLE ".$table." (title TEXT, url TEXT)");
 		$irc->yield(notice => $nick => "You have now created a bookmark database");
 		$irc->yield(notice => $nick => "Type /MSG URLbot HELP for more information");
@@ -37,7 +34,6 @@ sub create {
 
 sub table_exists {
         my @row = $db->selectrow_array("SELECT name FROM sqlite_master WHERE type='table' AND name='$_[0]'");
-	#print @row."\n";
         return (@row > 0);
 }
 sub item_exists($$$) {
@@ -74,8 +70,6 @@ sub grab_item($$$) {
 			foreach my $row (@$results) {
 				my ($title,$url) = @$row;
 				$irc->yield(notice => $nick => "$title     ($url)");
-#				$irc->yield("NOTICE $nick :URL: $url");
-#				$irc->yield("NOTICE $nick :--");
 			}
 		}
 		else {
