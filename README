@@ -1,0 +1,6 @@
+Change the values of urlbot.conf.example to meet your needs
+Be sure to rename urlbot.conf.example to urlbot.conf
+
+Also be sure to rename urlbot.db.example to urlbot.db
+
+If you need to debug things, run with the --debug option
