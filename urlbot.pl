@@ -26,10 +26,10 @@ our ($irc) = POE::Component::IRC->spawn();
 POE::Session->create(
      inline_states => {
           _start              => \&bot_start,
-     	connect	          => \&bot_connect,
+          connect             => \&bot_connect,
           irc_001             => \&on_connect,
-     	irc_433	          => \&err_nickinuse,
-     	irc_471	          => \&err_chan,
+          irc_433             => \&err_nickinuse,
+          irc_471             => \&err_chan,
           irc_473             => \&err_chan,
           irc_474             => \&err_chan,
           irc_475             => \&err_chan,
@@ -68,8 +68,8 @@ sub bot_start {
      $kernel->yield("connect");
 }
 sub bot_connect {
-	my ( $kernel, $heap ) = @_[ KERNEL, HEAP ];
-	$irc->yield(connect =>
+     my ( $kernel, $heap ) = @_[ KERNEL, HEAP ];
+     $irc->yield(connect =>
            { Nick => 'URLBot',
             Username => 'URLBot',
             Ircname  => 'URLBot by MusashiX90',
@@ -77,7 +77,7 @@ sub bot_connect {
             Port     => '6667',
             Flood    => '1',
           }
-	);
+     );
 }
 sub on_connect {
      $irc->yield( join => CHANNEL );
@@ -106,95 +106,89 @@ sub on_public {
      my $ts = scalar localtime;
      print " [$ts] <$nick:$channel> $msg\n" if defined($debug);
      my @args = split(/ /,$msg,4) if length($msg) > 0;
-	if ($msg =~ /$botnick\: ping\?/i) {
-		$irc->yield(privmsg => $channel => "$nick: Pong!");
-	}
+     if ($msg =~ /$botnick\: ping\?/i) {
+          $irc->yield(privmsg => $channel => "$nick: Pong!");
+     }
 }
 sub on_privmsg {
      my ( $kernel, $who, $where, $msg ) = @_[ KERNEL, ARG0, ARG1, ARG2 ];
      my $nick = ( split /!/, $who )[0];
      my $target = $where->[0];
 
-	my @split = split(/\s/,$msg);
-	if ($split[0] =~ /^(bookmark|bm)$/i) {
-		if ($split[1] =~ /^create$/i) {
-			Bookmark::create($irc,$nick);
-		}
-		elsif ($split[1] =~ /^add/i and @split eq 4) {
-			Bookmark::add($irc,$nick,$split[2],$split[3]);
-		}
-		elsif ($split[1] =~ /^search/i and @split eq 3) {
-			Bookmark::grab_item($irc,$nick,$split[2]);
-		}
-		elsif ($split[1] =~ /^share/i and @split eq 4) {
-			Bookmark::share_item($irc,$nick,$split[2],$split[3]);
-		}
-	}
-	elsif ($split[0] =~ /^help$/i) {
-		if ($split[1] =~ /^bookmark$/i) {
-			if (@split eq 2) {
-     	          $irc->yield(notice => $nick => "Commands:");
+     my @split = split(/\s/,$msg);
+     if ($split[0] =~ /^(bookmark|bm)$/i) {
+          if ($split[1] =~ /^create$/i) {
+               Bookmark::create($irc,$nick);
+          }
+          elsif ($split[1] =~ /^add/i and @split eq 4) {
+               Bookmark::add($irc,$nick,$split[2],$split[3]);
+          }
+          elsif ($split[1] =~ /^search/i and @split eq 3) {
+               Bookmark::grab_item($irc,$nick,$split[2]);
+          }
+          elsif ($split[1] =~ /^share/i and @split eq 4) {
+               Bookmark::share_item($irc,$nick,$split[2],$split[3]);
+          }
+     }
+     elsif ($split[0] =~ /^help$/i) {
+          if ($split[1] =~ /^bookmark$/i) {
+               if (@split eq 2) {
+                    $irc->yield(notice => $nick => "Commands:");
                     $irc->yield(notice => $nick => "  CREATE    Starts the bookmarking system");
                     $irc->yield(notice => $nick => "  ADD       Adds a bookmark");
                     $irc->yield(notice => $nick => "  SEARCH    Searches through bookmarks");
-			}
-			elsif ($split[2] =~ /^create$/) {
-				$irc->yield(notice => $nick => "Creates the database used for bookmarks");
-			}
-			elsif ($split[2] =~ /^add$/i) {
-				$irc->yield(notice => $nick => "Adds a bookmark");
-				$irc->yield(notice => $nick => "Syntax: BOOKMARK ADD <title> <URL>");
-			}
-			elsif ($split[2] =~ /^search$/i) {
-				$irc->yield(notice => $nick => "Searchs for bookmarks by title (wildcards can be used)");
-				$irc->yield(notice => $nick => "Syntax: BOOKMARK SEARCH <title>");
-			}
-		}
-		elsif ($split[1] =~ /^xrl$/i) {
-			$irc->yield(notice => $nick => "Shortens URLs with the XRL.US website");
-			$irc->yield(notice => $nick => "Syntax: XRL <url>");
-		}
-		else {
-			$irc->yield(notice => $nick => "Commands:");
-			$irc->yield(notice => $nick => "  BOOKMARK    Bookmarking system");
-			$irc->yield(notice => $nick => "  XRL         Shortens URLs");
-		}
-	}
-	elsif ($split[0] =~ /^xrl$/i and @split eq 2) {
-		$irc->yield(notice => $nick => xrl($split[1]));
-	}
+               } elsif ($split[2] =~ /^create$/) {
+                    $irc->yield(notice => $nick => "Creates the database used for bookmarks");
+               } elsif ($split[2] =~ /^add$/i) {
+                    $irc->yield(notice => $nick => "Adds a bookmark");
+                    $irc->yield(notice => $nick => "Syntax: BOOKMARK ADD <title> <URL>");
+               } elsif ($split[2] =~ /^search$/i) {
+                    $irc->yield(notice => $nick => "Searchs for bookmarks by title (wildcards can be used)");
+                    $irc->yield(notice => $nick => "Syntax: BOOKMARK SEARCH <title>");
+               }
+          } elsif ($split[1] =~ /^xrl$/i) {
+               $irc->yield(notice => $nick => "Shortens URLs with the XRL.US website");
+               $irc->yield(notice => $nick => "Syntax: XRL <url>");
+          } else {
+               $irc->yield(notice => $nick => "Commands:");
+               $irc->yield(notice => $nick => "  BOOKMARK    Bookmarking system");
+               $irc->yield(notice => $nick => "  XRL         Shortens URLs");
+          }
+     }
+     elsif ($split[0] =~ /^xrl$/i and @split eq 2) {
+          $irc->yield(notice => $nick => xrl($split[1]));
+     }
 }
 sub on_notice {
      my ( $kernel, $who, $where, $msg ) = @_[ KERNEL, ARG0, ARG1, ARG2 ];
      my $nick = ( split /!/, $who )[0];
      my $target = $where->[0];
-	if ($msg =~ /nick(.+)type(.+)\/msg NickServ IDENTIFY(.+)password(.+) Otherwise/i && $nick =~ /NickServ/i) {
-		$irc->yield(privmsg => "NickServ" => "identify $nickpass");
-	}
-	print "$nick -> $msg\n" if defined($debug);
+     if ($msg =~ /nick(.+)type(.+)\/msg NickServ IDENTIFY(.+)password(.+) Otherwise/i && $nick =~ /NickServ/i) {
+          $irc->yield(privmsg => "NickServ" => "identify $nickpass");
+     }
+     print "$nick -> $msg\n" if defined($debug);
 }
 sub irc_banned {
-	my $rejointime = time()+30;
-	while ($rejointime ne 0) {
-		if ($rejointime eq time() || $rejointime lt time()) {
-			$rejointime = 0;
-			ircsend("JOIN $_[0]");
-		}
-	}
+     my $rejointime = time()+30;
+     while ($rejointime ne 0) {
+          if ($rejointime eq time() || $rejointime lt time()) {
+               $rejointime = 0;
+               ircsend("JOIN $_[0]");
+          }
+     }
 }
 sub xrl {
-	my $url = "http://metamark.net/api/rest/simple?long_url=";
+     my $url = "http://metamark.net/api/rest/simple?long_url=";
      if ($_[0] =~ /http\:\/\//) { 
-		$url .= $_[0]; 
-	}
-     else { 
-		$url .= "http://".$_[0]; 
-	}
-	my $browser = LWP::UserAgent->new;
-	my $response = $browser->get($url);
-	return "Can't get $url --".$response->status_line unless $response->is_success;
-	my $newurl = $response->content;
-	return "$newurl";
+          $url .= $_[0]; 
+     } else { 
+          $url .= "http://".$_[0]; 
+     }
+     my $browser = LWP::UserAgent->new;
+     my $response = $browser->get($url);
+     return "Can't get $url --".$response->status_line unless $response->is_success;
+     my $newurl = $response->content;
+     return "$newurl";
 }
 sub on_version {
      my ($kernel,$who,$where,$msg) = @_[ KERNEL, ARG0, ARG1, ARG2 ];
@@ -218,24 +212,20 @@ sub bot_reconnect {
     $kernel->delay( connect => 60);
 }
 sub on_action {
-	my ($kernel,$who,$where,$msg) = @_[ KERNEL, ARG0, ARG1, ARG2 ];
-	my $nick = (split /!/,$who)[0];
-	my $channel = $where->[0];
-	my $ts = scalar localtime;
-	if (lc($msg) =~ /http\:\/\// || lc($msg) =~ /www\.*/) {
-          geturl($msg,$channel);
-     }
+     my ($kernel,$who,$where,$msg) = @_[ KERNEL, ARG0, ARG1, ARG2 ];
+     my $nick = (split /!/,$who)[0];
+     my $channel = $where->[0];
 }
 sub err_nickinuse {
      my $kernel = KERNEL;
-	print "Error: Nickname is already in use.\n" if defined($debug);
-	$botnick .= "_" if $botnick !~ /_$/;
-	$irc->yield(nick => $botnick);
-	$irc->delay( [ nick => "URLBot" ], 60);
+     print "Error: Nickname is already in use.\n" if defined($debug);
+     $botnick .= "_" if $botnick !~ /_$/;
+     $irc->yield(nick => $botnick);
+     $irc->delay( [ nick => "URLBot" ], 60);
 }
 sub err_chan {
-	my $kernel = KERNEL;
-	$irc->delay( [ join => CHANNEL ], 120);
+     my $kernel = KERNEL;
+     $irc->delay( [ join => CHANNEL ], 120);
 }
 sub irc_page_title {
      my $target = $_[ARG0]{channel};
