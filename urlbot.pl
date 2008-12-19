@@ -40,9 +40,11 @@ POE::Session->create(
           irc_notice          => \&on_notice,
           irc_error           => \&bot_reconnect,
           irc_socketerr       => \&bot_reconnect,
+          irc_disconnected    => \&bot_reconnect,
           irc_ctcp_action     => \&on_action,
           irc_page_title      => \&irc_page_title,
           irc_kick            => \&on_kick,
+          autoping            => \&bot_autoping,
      },
 );
 
@@ -80,8 +82,11 @@ sub bot_connect {
      );
 }
 sub on_connect {
+     my ( $kernel, $heap ) = @_[ KERNEL, HEAP ];
      $irc->yield( join => CHANNEL );
      $irc->yield( mode => $botnick => '+B' );
+     $heap->{seen_traffic} = 1;
+     $kernel->delay( autoping => 120 );
 }
 
 sub daemonize() {
@@ -197,7 +202,7 @@ sub on_version {
      my $ts = scalar localtime;
 
      print " [$ts] -- CTCP VERSION request from $nick.\n" if defined($debug);
-     $irc->yield(ctcpreply => $nick => 'VERSION URLBot 0.4-poe by MusashiX90');
+     $irc->yield(ctcpreply => $nick => 'VERSION URLBot v0.5 by MusashiX90');
 }
 sub on_time {
      my ($kernel,$who,$where,$msg) = @_[ KERNEL, ARG0, ARG1, ARG2 ];
@@ -208,8 +213,10 @@ sub on_time {
      $irc->yield(ctcpreply => $nick => 'TIME '.scalar localtime);
 }
 sub bot_reconnect {
-    my $kernel = $_[KERNEL];
-    $kernel->delay( connect => 60);
+     my $kernel = $_[KERNEL];
+     $kernel->delay( autoping => undef );
+     $kernel->delay( connect  => 60 );
+     print "Attempting to reconnect in 60 seconds\n" if defined($debug);
 }
 sub on_action {
      my ($kernel,$who,$where,$msg) = @_[ KERNEL, ARG0, ARG1, ARG2 ];
@@ -248,4 +255,13 @@ sub on_kick {
      if ($victim eq $botnick) {
           $irc->delay( [ join => $channel ], 120);
      }
+}
+
+sub bot_autoping {
+    my ( $kernel, $heap ) = @_[ KERNEL, HEAP ];
+    $kernel->post( poco_irc => userhost => "URLBot" )
+      unless $heap->{seen_traffic};
+    $heap->{seen_traffic} = 0;
+    $kernel->delay( autoping => 120 );
+    print "Autoping\n" if defined($debug);
 }
