@@ -3,7 +3,7 @@ use strict;
 use IO::Socket;
 use LWP;
 use Bookmark;
-use POE qw(Component::IRC Component::IRC::Plugin::WWW::GetPageTitle);
+use POE qw(Component::IRC Component::IRC::Plugin::WWW::GetPageTitle Component::IRC::Plugin::Connector);
 use Config::Tiny;
 use Getopt::Long;
 
@@ -44,7 +44,6 @@ POE::Session->create(
           irc_ctcp_action     => \&on_action,
           irc_page_title      => \&irc_page_title,
           irc_kick            => \&on_kick,
-          autoping            => \&bot_autoping,
      },
 );
 
@@ -52,6 +51,10 @@ sub bot_start {
      my $kernel  = $_[KERNEL];
      my $heap    = $_[HEAP];
      my $session = $_[SESSION];
+
+     $heap->{connector} = POE::Component::IRC::Plugin::Connector->new();
+
+     $irc->plugin_add( 'Connector' => $heap->{connector} );
 
      $irc->yield( register => "all" );
      $irc->plugin_add('get_page_title' =>
@@ -86,7 +89,6 @@ sub on_connect {
      $irc->yield( join => CHANNEL );
      $irc->yield( mode => $botnick => '+B' );
      $heap->{seen_traffic} = 1;
-     $kernel->delay( autoping => 120 );
 }
 
 sub daemonize() {
@@ -214,7 +216,6 @@ sub on_time {
 }
 sub bot_reconnect {
      my $kernel = $_[KERNEL];
-     $kernel->delay( autoping => undef );
      $kernel->delay( connect  => 60 );
      print "Attempting to reconnect in 60 seconds\n" if defined($debug);
 }
@@ -255,13 +256,4 @@ sub on_kick {
      if ($victim eq $botnick) {
           $irc->delay( [ join => $channel ], 120);
      }
-}
-
-sub bot_autoping {
-    my ( $kernel, $heap ) = @_[ KERNEL, HEAP ];
-    $kernel->post( poco_irc => userhost => "URLBot" )
-      unless $heap->{seen_traffic};
-    $heap->{seen_traffic} = 0;
-    $kernel->delay( autoping => 120 );
-    print "Autoping\n" if defined($debug);
 }
