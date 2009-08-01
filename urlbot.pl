@@ -2,10 +2,21 @@
 use strict;
 use IO::Socket;
 use LWP;
-use Bookmark;
 use POE qw(Component::IRC Component::IRC::Plugin::WWW::GetPageTitle Component::IRC::Plugin::Connector);
 use Config::Tiny;
 use Getopt::Long;
+
+BEGIN {
+        use Cwd qw( abs_path getcwd );
+        use File::Basename;
+        my %consts = ( CWD => getcwd(), PREFIX => dirname(abs_path($0)), );
+        require constant;
+        import constant(\%consts);
+}
+ 
+chdir PREFIX;
+use lib PREFIX;
+use Modules::Bookmark;
 
 die "Error: You must rename urlbot.db.example to urlbot.db\n" if !-e "urlbot.db";
 die "Error: You must rename urlbot.conf.example to urlbot.conf\n" if !-e "urlbot.conf";
@@ -14,7 +25,7 @@ die "Usage: $0 ircserver channels\,separated\,by\,commas\n" if !$ARGV[0] && !$AR
 my $debug;
 GetOptions ('debug' => \$debug);
 
-my $conf = Config::Tiny->read( 'urlbot.conf' );
+my $conf = Config::Tiny->read( PREFIX.'urlbot.conf' );
 my $botnick = $conf->{bot}->{nickname};
 my $nickpass = $conf->{bot}->{password};
 my $server = $ARGV[0];
@@ -41,7 +52,6 @@ POE::Session->create(
           irc_error           => \&bot_reconnect,
           irc_socketerr       => \&bot_reconnect,
           irc_disconnected    => \&bot_reconnect,
-          irc_ctcp_action     => \&on_action,
           irc_page_title      => \&irc_page_title,
           irc_kick            => \&on_kick,
      },
@@ -81,6 +91,7 @@ sub bot_connect {
             Server   => $server,
             Port     => '6667',
             Flood    => '1',
+            useipv6  => '1',
           }
      );
 }
@@ -236,19 +247,19 @@ sub err_chan {
      $irc->delay( [ join => CHANNEL ], 120);
 }
 sub irc_page_title {
-     my $target = $_[ARG0]{channel};
-     my $title = $_[ARG0]{title};
-     my $who = $_[ARG0]{who};
-     $flood{$target} = 0 if !defined($flood{$target});
-     $flood{$who} = 0 if !defined($flood{$who});
-     print "Found: $target -  $title\n" if defined($debug);
-     if (time - $flood{$target} >= 3 && time - $flood{$who} >= 5) {
-          if (time - $flood{$target} >= 5 && $title !~ /DCC SEND/ && $title !~ /(start|stop)keylogger/ && $title !~ /irc\.(.+)\.(.+)/ && $title !~ /^\[[a-z].+\]\s$/) {
-               $irc->yield(privmsg => $target => $title);
-          }
-          $flood{$target} = time();
-          $flood{$who} = time();
-      }
+	my $target = $_[ARG0]{channel};
+	my $title = $_[ARG0]{title};
+	my $who = $_[ARG0]{who};
+	$flood{$target} = 0 if !defined($flood{$target});
+	$flood{$who} = 0 if !defined($flood{$who});
+	print "Found: $target -  $title\n" if defined($debug);
+	if (time - $flood{$target} >= 3 && time - $flood{$who} >= 5) {
+		if (time - $flood{$target} >= 5 && $title !~ /DCC SEND/ && $title !~ /(start|stop)keylogger/ && $title !~ /irc\.(.+)\.(.+)/ && $title !~ /^\[[a-z].+\]\s$/) {
+			$irc->yield(privmsg => $target => $title);
+		}
+		$flood{$target} = time();
+		$flood{$who} = time();
+	}
 }
 sub on_kick {
      my $channel = $_[ARG1];
@@ -257,3 +268,4 @@ sub on_kick {
           $irc->delay( [ join => $channel ], 120);
      }
 }
+
