@@ -55,6 +55,7 @@ POE::Session->create(
 		irc_474             => \&err_chan,
 		irc_475             => \&err_chan,
 		irc_public          => \&on_public,
+		irc_ctcp_action     => \&on_action,
 		irc_ctcp_version    => \&on_version,
 		irc_ctcp_time       => \&on_time,
 		irc_msg             => \&on_privmsg,
@@ -126,6 +127,17 @@ sub on_public {
 	} else {
 		find_urls($nick,$channel,$msg);
 	}
+}
+
+sub on_action {
+	my ( $kernel, $who, $where, $msg ) = @_[ KERNEL, ARG0, ARG1, ARG2 ];
+	my $nick = ( split /!/, $who )[0];
+	my $channel = $where->[0];
+
+	my $ts = scalar localtime;
+	print " [$ts] * $nick:$channel> $msg\n" if defined($debug);
+	my @args = split(/ /,$msg,4) if length($msg) > 0;
+	find_urls($nick,$channel,$msg);
 }
 
 sub on_privmsg {
@@ -218,6 +230,7 @@ sub on_version {
 	print " [$ts] -- CTCP VERSION request from $nick.\n" if defined($debug);
 	$irc->yield(ctcpreply => $nick => 'VERSION URLBot v0.5');
 }
+
 sub on_time {
 	my ($kernel,$who,$where,$msg) = @_[ KERNEL, ARG0, ARG1, ARG2 ];
 	my $nick = (split /!/,$who)[0];
@@ -226,22 +239,20 @@ sub on_time {
 	print " [$ts] -- CTCP TIME request from $nick.\n" if defined($debug);
 	$irc->yield(ctcpreply => $nick => 'TIME '.scalar localtime);
 }
+
 sub bot_reconnect {
 	my $kernel = $_[KERNEL];
 	$kernel->delay( connect  => 60 );
 	print "Attempting to reconnect in 60 seconds\n" if defined($debug);
 }
-sub on_action {
-     my ($kernel,$who,$where,$msg) = @_[ KERNEL, ARG0, ARG1, ARG2 ];
-     my $nick = (split /!/,$who)[0];
-     my $channel = $where->[0];
-}
+
 sub err_nickinuse {
 	my $kernel = KERNEL;
 	print "Error: Nickname is already in use.\n" if defined($debug);
 	$irc->yield(nick => $botnick."_") if $botnick !~ /^$botnick\_$/;
 	$irc->delay( [ nick => $botnick ], 60);
 }
+
 sub err_chan {
 	my $kernel = KERNEL;
 	$irc->delay( [ join => CHANNEL ], 120);
