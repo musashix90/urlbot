@@ -264,9 +264,14 @@ sub find_urls($$$) {
 	my $finder = URI::Find::Schemeless->new(sub { push @urls, shift; });
 	$finder->find(\$msg);
 	if ($#urls+1 ge 0) {
+		$flood{$channel} = 0 if !defined($flood{$channel});
+		$flood{$nick} = 0 if !defined($flood{$nick});
 		for (my $i = 0;$#urls+1 >= $i;$i++) {
 			next if $i ge $max_urls || $urls[$i] =~ /\.(bmp|png|jpe?g|tiff|zip|rar|bz2|gz|tar)/i;
+			next if time - $flood{$channel} <= 5 && time - $flood{$nick} <= 5;
 			get_title($nick,$channel,$urls[$i]);
+			$flood{$channel} = time();
+			$flood{$nick} = time();
 		}
 	}
 }
@@ -279,8 +284,9 @@ sub get_title($$$) {
 		my $parser = HTML::TokeParser->new(\$response->decoded_content);
 		$parser->get_tag('title');
 		$info = $parser->get_trimmed_text('/title');
-		$info = "No title" if (!$info);
-		$irc->yield('privmsg' => $channel => "$info <$url>");
+		if ($info) {
+			$irc->yield('privmsg' => $channel => "$info <$url>");
+		}
 	}
 }
 
