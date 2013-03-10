@@ -64,6 +64,7 @@ POE::Session->create(
 		irc_socketerr       => \&bot_reconnect,
 		irc_disconnected    => \&bot_reconnect,
 		irc_kick            => \&on_kick,
+		irc_invite          => \&on_invite,
 	},
 );
 
@@ -316,3 +317,7 @@ sub on_kick {
 	}
 }
 
+sub on_invite {
+	my $channel = $_[ARG1];
+	$irc->yield(join => $channel);
+}
